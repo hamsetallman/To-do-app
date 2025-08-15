@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Todo List</title>
+<style>
+  :root{
+    --card-w: 400px;
+    --radius: 14px;
+    --shadow: 0 10px 22px rgba(0,0,0,.12);
+    --muted:#666;
+    --accent:#2b8a94;
+  }
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:#f3f3f6;
+    display:flex;
+    min-height:100vh;
+    align-items:flex-start;
+    justify-content:center;
+    padding:28px 12px;
+  }
+  .card{
+    width:var(--card-w);
+    background:#fff;
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    overflow:hidden;
+  }
+
+
+  .head{
+    padding:18px 18px 22px;
+    background: linear-gradient(90deg, #6aa3a9, #e6a0b8);
+    color:#fff;
+  }
+  .title{
+    text-align:center;
+    font-weight:700;
+    letter-spacing:.3px;
+    font-size:22px;
+    margin:0 0 12px;
+    text-shadow:0 1px 0 rgba(0,0,0,.08);
+  }
+  .add-row{
+    display:flex;
+    gap:10px;
+    justify-content:center;
+  }
+  .add-row input{
+    width:260px;
+    height:32px;
+    border-radius:7px;
+    border:none;
+    outline:none;
+    padding:0 10px;
+    font-size:15px;
+  }
+  .add-row button{
+    height:32px;
+    padding:0 12px;
+    border-radius:7px;
+    border:none;
+    background:#fff;
+    cursor:pointer;
+    font-weight:700;
+    text-transform:lowercase;
+  }
+
+  /* body */
+  .body{
+    padding:14px 18px 500px;
+  }
+
+  /* search bar row */
+  .search-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:8px;
+    font-size:15px;
+  }
+  .search-row label{
+    color:#000;
+  }
+  .search-row input{
+    flex:0 0 220px;
+    height:28px;
+    border:1px solid #ddd;
+    border-radius:6px;
+    outline:none;
+    padding:0 8px;
+  }
+
+  /* list */
+  ul{ list-style:none; padding:0; margin:6px 0 10px; }
+  li{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 0;
+    border-bottom:1px solid #f1f1f1;
+  }
+  .t-text{
+    flex:1;
+    font-size:15px;
+  }
+  .done .t-text{
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .actions{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    user-select:none;
+    font-size:20px;
+    line-height:1;
+  }
+  .actions button{
+    background:none;
+    border:none;
+    cursor:pointer;
+    padding:0 2px;
+    font-size:20px;
+  }
+
+  /* empty and clear */
+  .empty{
+    color:#554;
+    margin:8px 0 4px;
+    font-size:15px;
+  }
+  .clear{
+    display:inline-block;
+    margin-top:6px;
+    color:rebeccapurple;
+  }
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <header class="head">
+      <h1 class="title">Todo List</h1>
+      <form class="add-row" id="addForm" autocomplete="off">
+        <input id="taskInput" type="text" placeholder="task name" />
+        <button type="submit">add</button>
+      </form>
+    </header>
+
+    <main class="body">
+      <div class="search-row">
+        <label for="searchInput">search task</label>
+        <input id="searchInput" type="text" />
+        <span aria-hidden="true">🔍</span>
+      </div>
+
+      <ul id="list"></ul>
+
+      <p id="empty" class="empty">Start adding tasks 🖐🏾</p>
+      <a id="clearAll" href="#" class="clear hidden">Clear</a>
+    </main>
+  </div>
+
+<script>
+  const addForm   = document.getElementById('addForm');
+  const taskInput = document.getElementById('taskInput');
+  const list      = document.getElementById('list');
+  const searchInp = document.getElementById('searchInput');
+  const emptyMsg  = document.getElementById('empty');
+  const clearAll  = document.getElementById('clearAll');
+
+  function updateStateUI(){
+    const hasItems = list.children.length > 0;
+    emptyMsg.classList.toggle('hidden', hasItems);
+    clearAll.classList.toggle('hidden', !hasItems);
+  }
+
+  function createItem(text){
+    const li = document.createElement('li');
+
+    const t = document.createElement('span');
+    t.className = 't-text';
+    t.textContent = text;
+
+    const actions = document.createElement('div');
+    actions.className = 'actions';
+
+    const delBtn = document.createElement('button');
+    delBtn.title = 'delete';
+    delBtn.textContent = '🔴';
+
+    const doneBtn = document.createElement('button');
+    doneBtn.title = 'done';
+    doneBtn.textContent = '✅';
+
+    actions.appendChild(delBtn);
+    actions.appendChild(doneBtn);
+
+    li.appendChild(t);
+    li.appendChild(actions);
+
+    // events
+    delBtn.addEventListener('click', () => {
+      li.remove();
+      updateStateUI();
+      applyFilter(searchInp.value.trim());
+    });
+
+    doneBtn.addEventListener('click', () => {
+      li.classList.toggle('done');
+    });
+
+    return li;
+  }
+
+  addForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const value = taskInput.value.trim();
+    if(!value) return;
+    list.appendChild(createItem(value));
+    taskInput.value = '';
+    updateStateUI();
+    applyFilter(searchInp.value.trim());
+  });
+
+  clearAll.addEventListener('click', (e) => {
+    e.preventDefault();
+    list.innerHTML = '';
+    updateStateUI();
+  });
+
+  function applyFilter(q){
+    const query = q.toLowerCase();
+    [...list.children].forEach(li => {
+      const txt = li.querySelector('.t-text').textContent.toLowerCase();
+      li.style.display = txt.includes(query) ? '' : 'none';
+    });
+  }
+
+  searchInp.addEventListener('input', (e)=>applyFilter(e.target.value));
+
+  // initial
+  updateStateUI();
+</script>
+</body>
+</html>
